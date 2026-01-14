@@ -270,15 +270,23 @@ class ChromeTabs extends BrowserTabs {
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
-    this._browser.tabs.executeScript(
-      tab_id, {code: script},
-      (result) => {
-        // https://stackoverflow.com/a/45603880/258421
+    this._browser.scripting.executeScript(
+      {
+        target: { tabId: tab_id },
+        func: (s) => eval(s),
+        args: [script],
+      },
+      (injectionResults) => {
         let lastError = chrome.runtime.lastError;
         if (lastError) {
           onError(lastError, payload);
         } else {
-          onSuccess(result, payload);
+          if (injectionResults) {
+            const results = injectionResults.map(r => r.result);
+            onSuccess(results, payload);
+          } else {
+            onSuccess([], payload);
+          }
         }
       }
     );
